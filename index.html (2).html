@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Diabetes Risk: A Machine Learning Study</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;700&display=swap">
+<style>
+:root{--bg:#f3f7f4;--ink:#10241c;--mute:#51675d;--line:#d3e0d8;--card:#fff;--acc:#0f7b6c;--up:#c4423a;--down:#0f7b6c;--amb:#d9822b;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1a15;--ink:#e6f1ec;--mute:#9db5aa;--line:#24382f;--card:#15251e;--acc:#4fcdb9;--up:#ff8077;--down:#4fcdb9;--amb:#f0a85a}}
+:root[data-theme="dark"]{--bg:#0e1a15;--ink:#e6f1ec;--mute:#9db5aa;--line:#24382f;--card:#15251e;--acc:#4fcdb9;--up:#ff8077;--down:#4fcdb9;--amb:#f0a85a}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.6 "DM Sans",system-ui,sans-serif}
+main{max-width:760px;margin:0 auto;padding:28px 18px 60px}
+h1,h2{font-family:"DM Serif Display",Georgia,serif;font-weight:400;line-height:1.12;margin:0}
+h1{font-size:clamp(2.1rem,8vw,3.2rem)}
+h2{font-size:1.7rem;margin:52px 0 12px}
+p{margin:0 0 14px;max-width:62ch}
+.lede{color:var(--mute);font-size:1.08rem;margin-top:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-top:22px}
+.ctl{margin:14px 0}
+.ctl .top{display:flex;justify-content:space-between;font-weight:500}
+.ctl output{color:var(--acc);font-weight:700}
+input[type=range]{width:100%;accent-color:var(--acc)}
+input:focus-visible,button:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.risk{margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}
+.big{font:400 3rem "DM Serif Display",serif;line-height:1}
+.lvl{font-weight:700;margin-left:8px}
+.bar{height:14px;border-radius:7px;background:linear-gradient(90deg,#2f9e7e,#e2b13c,#c4423a);position:relative;margin:12px 0 6px}
+.bar i{position:absolute;top:-5px;width:6px;height:24px;border-radius:3px;background:var(--ink);transform:translateX(-3px);transition:left .15s}
+.drv{margin-top:14px;font-size:.92rem}
+.drv div{display:grid;grid-template-columns:96px 1fr;align-items:center;gap:8px;margin:5px 0}
+.drv .t{position:relative;height:12px;background:var(--line);border-radius:6px}
+.drv .t:before{content:"";position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--mute)}
+.drv .t b{position:absolute;top:0;height:100%;border-radius:6px}
+.note{font-size:.85rem;color:var(--mute);margin-top:12px}
+.btn{font:500 .9rem "DM Sans",sans-serif;background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px 12px;cursor:pointer;margin:0 6px 0 0}
+.zero{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:10px}
+.zero div{border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:.92rem}
+.zero b{display:block;font:400 1.4rem "DM Serif Display",serif;color:var(--amb)}
+ol{padding-left:20px;margin:0}li{margin-bottom:8px;max-width:62ch}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--card)}
+table{border-collapse:collapse;width:100%;min-width:460px;font-size:.95rem}
+th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line)}
+tr:last-child td{border:0}th{color:var(--mute);font-weight:500}
+.warn{border-left:4px solid var(--amb);padding:6px 14px;background:var(--card);border-radius:0 8px 8px 0}
+.link{display:inline-block;background:var(--acc);color:#fff;text-decoration:none;font-weight:500;padding:11px 18px;border-radius:8px;margin:6px 8px 6px 0}
+.link.alt{background:transparent;color:var(--ink);border:1px solid var(--line)}
+footer{margin-top:48px;color:var(--mute);font-size:.85rem}
+</style>
+</head>
+<body>
+<main>
+<h1>What does a blood sugar reading say about diabetes risk?</h1>
+<p class="lede">A machine learning study of 768 patients from the Pima Indians Diabetes dataset. Explore how common measurements push risk up or down.</p>
+
+<div class="card">
+  <strong>Risk explorer</strong>
+  <div id="ctls"></div>
+  <div class="risk" aria-live="polite">
+    <span class="big" id="pct">0%</span><span class="lvl" id="lvl"></span>
+    <div class="bar"><i id="mk"></i></div>
+    <div class="drv" id="drv"></div>
+  </div>
+  <button class="btn" id="avg" type="button">Reset to dataset average</button>
+  <button class="btn" id="hi" type="button">Try a high-risk profile</button>
+  <p class="note">Illustrative model with hand-set weights for teaching. It is not the notebook's trained model and not medical advice. Bars show each factor's push relative to the dataset average.</p>
+</div>
+
+<h2>The data</h2>
+<p>768 women aged 21 and over, each with 8 measurements: pregnancies, glucose, blood pressure, skin thickness, insulin, BMI, family history score and age. About 35% tested positive for diabetes.</p>
+
+<h2>A hidden problem: zeros that mean "missing"</h2>
+<p>Blood pressure of 0 is impossible. In this dataset, a 0 stands for a missing value. The notebook converts these to missing and fills them using the median, inside the model pipeline so the test set stays untouched.</p>
+<div class="zero" id="zero"></div>
+<p class="note">Counts of impossible zeros in the original data: run the notebook's data quality step to see yours.</p>
+
+<h2>Method</h2>
+<ol>
+<li><b>Clean.</b> Treat impossible zeros as missing and impute with the median.</li>
+<li><b>Explore.</b> Compare distributions by outcome and check correlations.</li>
+<li><b>Split.</b> 80% train, 20% test, stratified.</li>
+<li><b>Compare.</b> Five-fold cross-validation on four models, judged on ROC AUC and recall.</li>
+<li><b>Tune.</b> Grid search on logistic regression.</li>
+<li><b>Check calibration.</b> Does 70% predicted risk mean about 70% actually have diabetes?</li>
+<li><b>Choose a threshold.</b> Trade missed cases against false alarms.</li>
+<li><b>Explain.</b> Permutation importance and model coefficients.</li>
+</ol>
+
+<h2>Models compared</h2>
+<div class="tw"><table>
+<tr><th>Model</th><th>Role</th></tr>
+<tr><td>Logistic regression</td><td>Readable baseline, easy to explain</td></tr>
+<tr><td>SVM (RBF)</td><td>Flexible boundary on scaled data</td></tr>
+<tr><td>Random forest</td><td>Captures non-linear effects</td></tr>
+<tr><td>Gradient boosting</td><td>Often strongest on tables</td></tr>
+</table></div>
+
+<h2>Results</h2>
+<p>Run the notebook, then add your numbers here: best model, test ROC AUC, recall, and the top features.</p>
+
+<h2>Limitations</h2>
+<p class="warn">This is an educational project, not a medical tool. The data covers a single population, many values were imputed, and nothing has been validated externally. Models can perform worse for groups missing from the training data.</p>
+
+<h2>Run it yourself</h2>
+<a class="link" href="https://colab.research.google.com/" rel="noopener">Open Google Colab</a>
+<a class="link alt" href="https://www.openml.org/search?type=data&id=37" rel="noopener">Dataset on OpenML</a>
+<footer>Data: Smith et al. (1988), Pima Indians Diabetes Database.</footer>
+</main>
+<script>
+(function(){
+var F=[
+ {k:'glucose',n:'Glucose',u:'mg/dL',min:60,max:200,v:121,w:.035},
+ {k:'bmi',n:'BMI',u:'',min:16,max:55,v:32,w:.08,s:.1},
+ {k:'age',n:'Age',u:'yrs',min:21,max:80,v:33,w:.03},
+ {k:'preg',n:'Pregnancies',u:'',min:0,max:15,v:4,w:.12},
+ {k:'ped',n:'Family history',u:'score',min:.1,max:2.4,v:.47,w:.9,s:.01}
+];
+var HI={glucose:165,bmi:39,age:52,preg:7,ped:1.1},AV={},B=-9.4;
+var $=function(i){return document.getElementById(i)};
+var box=$('ctls'),inp={},out={};
+F.forEach(function(f){AV[f.k]=f.v;
+ var d=document.createElement('div');d.className='ctl';
+ var t=document.createElement('div');t.className='top';
+ var l=document.createElement('label');l.textContent=f.n;l.htmlFor='i_'+f.k;
+ var o=document.createElement('output');o.id='o_'+f.k;t.appendChild(l);t.appendChild(o);
+ var r=document.createElement('input');r.type='range';r.id='i_'+f.k;r.min=f.min;r.max=f.max;r.step=f.s||1;r.value=f.v;
+ r.addEventListener('input',draw);d.appendChild(t);d.appendChild(r);box.appendChild(d);inp[f.k]=r;out[f.k]=o});
+function draw(){
+ var z=B,rows=[],mx=.01;
+ F.forEach(function(f){var v=+inp[f.k].value;out[f.k].textContent=v+(f.u?' '+f.u:'');
+  z+=f.w*v;var c=f.w*(v-AV[f.k]);rows.push({n:f.n,c:c});mx=Math.max(mx,Math.abs(c))});
+ var p=1/(1+Math.exp(-z)),pc=Math.round(p*100);
+ $('pct').textContent=pc+'%';
+ $('lvl').textContent=pc<25?'Lower':pc<50?'Moderate':'Higher';
+ $('mk').style.left=Math.min(99,Math.max(1,pc))+'%';
+ var D=$('drv');D.textContent='';
+ rows.forEach(function(r){var row=document.createElement('div');
+  var a=document.createElement('span');a.textContent=r.n;
+  var t=document.createElement('div');t.className='t';
+  var b=document.createElement('b');var w=Math.min(50,Math.abs(r.c)/mx*50);
+  b.style.width=w+'%';b.style.left=r.c>=0?'50%':(50-w)+'%';b.style.background=r.c>=0?'var(--up)':'var(--down)';
+  t.appendChild(b);row.appendChild(a);row.appendChild(t);D.appendChild(row)});
+}
+function set(o){F.forEach(function(f){inp[f.k].value=o[f.k]});draw()}
+$('avg').addEventListener('click',function(){set(AV)});
+$('hi').addEventListener('click',function(){set(HI)});
+[['Glucose'],['Blood pressure'],['Skin thickness'],['Insulin'],['BMI']].forEach(function(x){
+ var d=document.createElement('div'),b=document.createElement('b');b.textContent='0 = missing';
+ d.appendChild(b);d.appendChild(document.createTextNode(x[0]));$('zero').appendChild(d)});
+draw();
+})();
+</script>
+</body>
+</html>
